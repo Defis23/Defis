@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'routes/app_routes.dart';
 
 class App extends StatelessWidget {
@@ -6,11 +8,13 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ROBSPACE Mobile',
-      debugShowCheckedModeBanner: false,
-      initialRoute: AppRoutes.login,
-      routes: AppRoutes.routes,
+    return ProviderScope(
+      child: MaterialApp(
+        title: 'ROBSPACE Mobile',
+        debugShowCheckedModeBanner: false,
+        initialRoute: AppRoutes.login,
+        routes: AppRoutes.routes,
+      ),
     );
   }
 }

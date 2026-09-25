@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../routes/app_routes.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -69,6 +70,19 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.events,
+                  );
+                },
+                child: const Text('Lihat Event'),
               ),
             ),
           ],

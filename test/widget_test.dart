@@ -5,6 +5,7 @@ void main() {
   testWidgets('ROBSPACE app loads', (WidgetTester tester) async {
     await tester.pumpWidget(const App());
 
-    expect(find.text('Login'), findsOneWidget);
+    expect(find.text('ROBSPACE'), findsOneWidget);
+    expect(find.text('Login'), findsNWidgets(2));
   });
 }
