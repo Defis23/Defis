@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/registration_validator.dart';
 import '../providers/event_provider.dart';
 import '../widgets/event_state_view.dart';
 
@@ -69,7 +71,7 @@ class EventScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
+      builder: (sheetContext) {
         bool isSubmitting = false;
 
         return StatefulBuilder(
@@ -83,101 +85,102 @@ class EventScreen extends ConsumerWidget {
               ),
               child: Form(
                 key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Daftar $eventName',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Daftar $eventName',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama',
-                        border: OutlineInputBorder(),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: nameController,
+                        enabled: !isSubmitting,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: RegistrationValidator.validateName,
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Nama wajib diisi.';
-                        }
-
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: emailController,
+                        enabled: !isSubmitting,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: RegistrationValidator.validateEmail,
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Email wajib diisi.';
-                        }
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  if (!formKey.currentState!.validate()) {
+                                    return;
+                                  }
 
-                        if (!value.contains('@')) {
-                          return 'Format email tidak valid.';
-                        }
+                                  setModalState(() {
+                                    isSubmitting = true;
+                                  });
 
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isSubmitting
-                            ? null
-                            : () async {
-                                if (!formKey.currentState!.validate()) {
-                                  return;
-                                }
+                                  try {
+                                    // Simulasi proses pendaftaran.
+                                    await Future<void>.delayed(
+                                      const Duration(seconds: 2),
+                                    );
 
-                                setModalState(() {
-                                  isSubmitting = true;
-                                });
+                                    if (!sheetContext.mounted) {
+                                      return;
+                                    }
 
-                                await Future<void>.delayed(
-                                  const Duration(seconds: 2),
-                                );
+                                    Navigator.pop(sheetContext);
 
-                                if (!context.mounted) {
-                                  return;
-                                }
-
-                                Navigator.pop(context);
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Pendaftaran berhasil.',
-                                    ),
+                                    ScaffoldMessenger.of(context)
+                                      ..hideCurrentSnackBar()
+                                      ..showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Pendaftaran berhasil.',
+                                          ),
+                                        ),
+                                      );
+                                  } finally {
+                                    nameController.dispose();
+                                    emailController.dispose();
+                                  }
+                                },
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
                                   ),
-                                );
-                              },
-                        child: isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(),
-                              )
-                            : const Text('Submit Pendaftaran'),
+                                )
+                              : const Text('Submit Pendaftaran'),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
           },
         );
       },
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      emailController.dispose();
+    });
   }
 }
