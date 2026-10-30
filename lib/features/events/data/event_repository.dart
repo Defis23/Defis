@@ -1,48 +1,26 @@
 
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../domain/event.dart';
 
 class EventRepository {
-  final http.Client client;
+  final FirebaseFirestore firestore;
 
-  EventRepository({http.Client? client})
-      : client = client ?? http.Client();
+  EventRepository({FirebaseFirestore? firestore})
+      : firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<List<Event>> getEvents() async {
-    final response = await client.get(
-      Uri.parse('https://jsonplaceholder.typicode.com/posts'),
-    );
+    final snapshot = await firestore.collection('events').get();
 
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Gagal mengambil data event. HTTP ${response.statusCode}',
-      );
-    }
-
-    final dynamic decodedData = jsonDecode(response.body);
-
-    if (decodedData is! List) {
-      throw const FormatException(
-        'Format data API tidak valid.',
-      );
-    }
-
-    return decodedData.map<Event>((item) {
-      if (item is! Map<String, dynamic>) {
-        throw const FormatException(
-          'Format event tidak valid.',
-        );
-      }
+    return snapshot.docs.map((document) {
+      final data = document.data();
 
       return Event.fromJson({
-        'id': item['id'],
-        'name': item['title'],
-        'location': 'API Demo',
-        'date': 'Data dari API',
-        'description': item['body'],
+        'id': document.id,
+        'name': data['name'],
+        'location': data['location'],
+        'date': data['date'],
+        'description': data['description'],
       });
     }).toList();
   }

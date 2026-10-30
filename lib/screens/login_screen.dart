@@ -1,4 +1,7 @@
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../routes/app_routes.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_text_field.dart';
@@ -17,8 +20,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final authService = AuthService();
 
   String? errorMessage;
+  bool isLoading = false;
 
-  void handleLogin() {
+  Future<void> handleLogin() async {
     final email = emailController.text.trim();
     final password = passwordController.text;
 
@@ -29,19 +33,54 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final success = authService.login(email, password);
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
 
-    if (success) {
+    try {
+      await authService.login(email, password);
+
+      if (!mounted) return;
+
       Navigator.pushReplacementNamed(
         context,
         AppRoutes.dashboard,
       );
-      return;
-    }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
 
-    setState(() {
-      errorMessage = 'Email atau password salah.';
-    });
+      setState(() {
+        switch (e.code) {
+          case 'invalid-email':
+            errorMessage = 'Format email tidak valid.';
+          case 'user-not-found':
+          case 'wrong-password':
+          case 'invalid-credential':
+            errorMessage = 'Email atau password salah.';
+          case 'user-disabled':
+            errorMessage = 'Akun ini dinonaktifkan.';
+          case 'too-many-requests':
+            errorMessage = 'Terlalu banyak percobaan. Coba lagi nanti.';
+          case 'network-request-failed':
+            errorMessage = 'Periksa koneksi internet kamu.';
+          default:
+            errorMessage = 'Login gagal. Silakan coba lagi.';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = 'Terjadi kesalahan. Silakan coba lagi.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -84,15 +123,17 @@ class _LoginScreenState extends State<LoginScreen> {
             if (errorMessage != null)
               Text(
                 errorMessage!,
-                style: const TextStyle(
-                  color: Colors.red,
-                ),
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
               ),
             const SizedBox(height: 16),
-            PrimaryButton(
-              text: 'Login',
-              onPressed: handleLogin,
-            ),
+            if (isLoading)
+              const CircularProgressIndicator()
+            else
+              PrimaryButton(
+                text: 'Login',
+                onPressed: handleLogin,
+              ),
           ],
         ),
       ),

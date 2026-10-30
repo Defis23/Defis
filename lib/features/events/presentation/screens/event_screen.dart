@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/registration_repository.dart';
 import '../../domain/registration_validator.dart';
 import '../providers/event_provider.dart';
 import '../widgets/event_state_view.dart';
@@ -47,7 +48,15 @@ class EventScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      _showRegistrationForm(context, event.name);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => _RegistrationFormSheet(
+                          eventId: event.id,
+                          eventName: event.name,
+                          parentContext: context,
+                        ),
+                      );
                     },
                     child: const Text('Daftar Event'),
                   ),
@@ -59,128 +68,164 @@ class EventScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _showRegistrationForm(
-    BuildContext context,
-    String eventName,
-  ) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+class _RegistrationFormSheet extends StatefulWidget {
+  final String eventId;
+  final String eventName;
+  final BuildContext parentContext;
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        bool isSubmitting = false;
+  const _RegistrationFormSheet({
+    required this.eventId,
+    required this.eventName,
+    required this.parentContext,
+  });
 
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+  @override
+  State<_RegistrationFormSheet> createState() =>
+      _RegistrationFormSheetState();
+}
+
+class _RegistrationFormSheetState
+    extends State<_RegistrationFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _repository = RegistrationRepository();
+
+  bool _isSubmitting = false;
+  String? _submitError;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting ||
+        !_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
+
+    try {
+      await _repository.register(
+        eventId: widget.eventId,
+        eventName: widget.eventName,
+        name: _nameController.text,
+        email: _emailController.text,
+      );
+
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
+
+      if (widget.parentContext.mounted) {
+        ScaffoldMessenger.of(widget.parentContext)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Pendaftaran berhasil disimpan.',
               ),
-              child: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Daftar $eventName',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        controller: nameController,
-                        enabled: !isSubmitting,
-                        decoration: const InputDecoration(
-                          labelText: 'Nama',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: RegistrationValidator.validateName,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: emailController,
-                        enabled: !isSubmitting,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: RegistrationValidator.validateEmail,
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: isSubmitting
-                              ? null
-                              : () async {
-                                  if (!formKey.currentState!.validate()) {
-                                    return;
-                                  }
+            ),
+          );
+      }
+    } catch (_) {
+      if (!mounted) return;
 
-                                  setModalState(() {
-                                    isSubmitting = true;
-                                  });
+      setState(() {
+        _submitError =
+            'Pendaftaran gagal disimpan. '
+            'Periksa koneksi atau izin Firebase, '
+            'lalu coba lagi.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
-                                  try {
-                                    // Simulasi proses pendaftaran.
-                                    await Future<void>.delayed(
-                                      const Duration(seconds: 2),
-                                    );
-
-                                    if (!sheetContext.mounted) {
-                                      return;
-                                    }
-
-                                    Navigator.pop(sheetContext);
-
-                                    ScaffoldMessenger.of(context)
-                                      ..hideCurrentSnackBar()
-                                      ..showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Pendaftaran berhasil.',
-                                          ),
-                                        ),
-                                      );
-                                  } finally {
-                                    nameController.dispose();
-                                    emailController.dispose();
-                                  }
-                                },
-                          child: isSubmitting
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Submit Pendaftaran'),
-                        ),
-                      ),
-                    ],
-                  ),
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Daftar ${widget.eventName}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            );
-          },
-        );
-      },
-    ).whenComplete(() {
-      nameController.dispose();
-      emailController.dispose();
-    });
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _nameController,
+                enabled: !_isSubmitting,
+                decoration: const InputDecoration(
+                  labelText: 'Nama',
+                  border: OutlineInputBorder(),
+                ),
+                validator: RegistrationValidator.validateName,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _emailController,
+                enabled: !_isSubmitting,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                validator: RegistrationValidator.validateEmail,
+              ),
+              if (_submitError != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _submitError!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Submit Pendaftaran'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
