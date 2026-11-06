@@ -27,7 +27,7 @@ class EventScreen extends ConsumerWidget {
         },
         itemBuilder: (event) {
           return Card(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -46,19 +46,24 @@ class EventScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(event.description),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (_) => _RegistrationFormSheet(
-                          eventId: event.id,
-                          eventName: event.name,
-                          parentContext: context,
-                        ),
-                      );
-                    },
-                    child: const Text('Daftar Event'),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          builder: (_) => _RegistrationFormSheet(
+                            eventId: event.id,
+                            eventName: event.name,
+                            parentContext: context,
+                          ),
+                        );
+                      },
+                      child: const Text('Daftar Event'),
+                    ),
                   ),
                 ],
               ),
@@ -109,6 +114,8 @@ class _RegistrationFormSheetState
       return;
     }
 
+    FocusScope.of(context).unfocus();
+
     setState(() {
       _isSubmitting = true;
       _submitError = null;
@@ -118,8 +125,8 @@ class _RegistrationFormSheetState
       await _repository.register(
         eventId: widget.eventId,
         eventName: widget.eventName,
-        name: _nameController.text,
-        email: _emailController.text,
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
       );
 
       if (!mounted) return;
@@ -134,6 +141,7 @@ class _RegistrationFormSheetState
               content: Text(
                 'Pendaftaran berhasil disimpan.',
               ),
+              behavior: SnackBarBehavior.floating,
             ),
           );
       }
@@ -157,72 +165,104 @@ class _RegistrationFormSheetState
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
       padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom: keyboardHeight,
       ),
-      child: Form(
-        key: _formKey,
+      child: SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Daftar ${widget.eventName}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 600,
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                enabled: !_isSubmitting,
-                decoration: const InputDecoration(
-                  labelText: 'Nama',
-                  border: OutlineInputBorder(),
-                ),
-                validator: RegistrationValidator.validateName,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailController,
-                enabled: !_isSubmitting,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                validator: RegistrationValidator.validateEmail,
-              ),
-              if (_submitError != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _submitError!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Daftar ${widget.eventName}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    TextFormField(
+                      controller: _nameController,
+                      enabled: !_isSubmitting,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Nama',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: RegistrationValidator.validateName,
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _emailController,
+                      enabled: !_isSubmitting,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: RegistrationValidator.validateEmail,
+                    ),
+
+                    if (_submitError != null) ...[
+                      const SizedBox(height: 12),
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          _submitError!,
+                          style: const TextStyle(
+                            color: Colors.red,
                           ),
-                        )
-                      : const Text('Submit Pendaftaran'),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submit,
+                        child: _isSubmitting
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text('Menyimpan pendaftaran...'),
+                                ],
+                              )
+                            : const Text('Submit Pendaftaran'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

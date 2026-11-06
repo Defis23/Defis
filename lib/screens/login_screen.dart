@@ -23,6 +23,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
 
   Future<void> handleLogin() async {
+    if (isLoading) return;
+
+    FocusScope.of(context).unfocus();
+
     final email = emailController.text.trim();
     final password = passwordController.text;
 
@@ -92,49 +96,93 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isWide = screenWidth >= 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('ROBSPACE'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Login',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 32 : 24,
+                vertical: 24,
               ),
-            ),
-            const SizedBox(height: 24),
-            AppTextField(
-              label: 'Email',
-              controller: emailController,
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              label: 'Password',
-              controller: passwordController,
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            if (errorMessage != null)
-              Text(
-                errorMessage!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 48,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 480,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+
+                        AppTextField(
+                          label: 'Email',
+                          controller: emailController,
+                        ),
+                        const SizedBox(height: 16),
+
+                        AppTextField(
+                          label: 'Password',
+                          controller: passwordController,
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        if (errorMessage != null) ...[
+                          Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        if (isLoading)
+                          Center(
+                            child: Semantics(
+                              label: 'Sedang masuk ke akun',
+                              child: const CircularProgressIndicator(),
+                            ),
+                          )
+                        else
+                          SizedBox(
+                            height: 48,
+                            child: PrimaryButton(
+                              text: 'Login',
+                              onPressed: handleLogin,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            const SizedBox(height: 16),
-            if (isLoading)
-              const CircularProgressIndicator()
-            else
-              PrimaryButton(
-                text: 'Login',
-                onPressed: handleLogin,
-              ),
-          ],
+            );
+          },
         ),
       ),
     );

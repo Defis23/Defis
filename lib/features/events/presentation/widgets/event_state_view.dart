@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../../domain/event.dart';
@@ -21,38 +22,47 @@ class EventStateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return Center(
+        child: Semantics(
+          label: 'Sedang memuat event',
+          child: const CircularProgressIndicator(),
+        ),
       );
     }
 
     if (error != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Gagal memuat event.',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 48,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Silakan coba lagi.',
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: const Text('Coba Lagi'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              const Text(
+                'Gagal memuat event.',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Silakan coba lagi.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: onRetry,
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -61,6 +71,7 @@ class EventStateView extends StatelessWidget {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.event_busy,
@@ -79,11 +90,53 @@ class EventStateView extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: events!.length,
-      itemBuilder: (context, index) {
-        return itemBuilder(events![index]);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+
+        final int columns;
+        if (screenWidth < 600) {
+          columns = 1;
+        } else if (screenWidth < 1000) {
+          columns = 2;
+        } else {
+          columns = 3;
+        }
+
+        const spacing = 16.0;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 1200,
+              ),
+              child: LayoutBuilder(
+                builder: (context, contentConstraints) {
+                  final itemWidth =
+                      (contentConstraints.maxWidth -
+                          (spacing * (columns - 1))) /
+                      columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: List.generate(
+                      events!.length,
+                      (index) {
+                        return SizedBox(
+                          width: itemWidth,
+                          child: itemBuilder(events![index]),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
       },
     );
   }
