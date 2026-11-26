@@ -15,30 +15,21 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
-    final id = json['id'];
-    final name = json['name'];
-    final location = json['location'];
-    final date = json['date'];
-    final description = json['description'];
+    final id = json['id']?.toString() ?? '';
+    final name = json['name']?.toString().trim() ?? '';
 
-    if (id == null ||
-        name is! String ||
-        name.trim().isEmpty ||
-        location is! String ||
-        location.trim().isEmpty ||
-        date is! String ||
-        date.trim().isEmpty ||
-        description is! String ||
-        description.trim().isEmpty) {
-      throw const FormatException('Data event tidak valid.');
+    if (id.isEmpty || name.isEmpty) {
+      throw const FormatException(
+        'ID atau nama event tidak valid.',
+      );
     }
 
     return Event(
-      id: id.toString(),
+      id: id,
       name: name,
-      location: location,
-      date: date,
-      description: description,
+      location: json['location']?.toString() ?? '',
+      date: json['date']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
     );
   }
 }

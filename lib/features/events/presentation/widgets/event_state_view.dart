@@ -32,7 +32,7 @@ class EventStateView extends StatelessWidget {
 
     if (error != null) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -41,6 +41,7 @@ class EventStateView extends StatelessWidget {
               const Icon(
                 Icons.error_outline,
                 size: 48,
+                color: Colors.red,
               ),
               const SizedBox(height: 12),
               const Text(
@@ -53,7 +54,12 @@ class EventStateView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Silakan coba lagi.',
+                'Detail error:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              SelectableText(
+                error.toString(),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -95,9 +101,9 @@ class EventStateView extends StatelessWidget {
         final screenWidth = constraints.maxWidth;
 
         final int columns;
-        if (screenWidth < 600) {
+        if (screenWidth < 1000) {
           columns = 1;
-        } else if (screenWidth < 1000) {
+        } else if (screenWidth < 1400) {
           columns = 2;
         } else {
           columns = 3;
